@@ -29,10 +29,7 @@ const BottomSheetManagerComponent = () => {
     (props: BottomSheetBackdropProps) => (
       <BottomSheetBackdrop
         {...props}
-        style={[
-          props.style,
-          { backgroundColor: "#00000000" },
-        ]}
+        style={[props.style, { backgroundColor: "#00000000" }]}
         pressBehavior="close"
         opacity={0.5}
         appearsOnIndex={0}

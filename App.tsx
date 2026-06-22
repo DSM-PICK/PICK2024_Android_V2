@@ -2,12 +2,19 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { ToastManager, BottomSheetManager, ModalManager } from "@/Components";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Alert, Animated, BackHandler, Linking, StatusBar } from "react-native";
+import {
+  Alert,
+  Animated,
+  BackHandler,
+  Linking,
+  Platform,
+  StatusBar,
+} from "react-native";
 import { useBottomSheet, useOptions, useTheme } from "@/hooks";
 import { NavigationContainer } from "@react-navigation/native";
 import { useMediaLibraryPermissions } from "expo-image-picker";
 import { enableScreens } from "react-native-screens";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getItem, navigationRef } from "@/utils";
 import { Navigation } from "@/Navigation";
 import { useFonts } from "expo-font";
@@ -18,6 +25,13 @@ import InAppUpdates, {
 
 enableScreens(true);
 
+const ANDROID_STORE_URL = "market://details?id=com.sixstandard.PICK";
+
+type AndroidUpdateSupport = {
+  readonly isImmediateUpdateAllowed: boolean;
+  readonly isFlexibleUpdateAllowed: boolean;
+};
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -27,6 +41,100 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+const isAndroidUpdateSupport = (
+  value: unknown,
+): value is AndroidUpdateSupport => {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const immediate = Object.getOwnPropertyDescriptor(
+    value,
+    "isImmediateUpdateAllowed",
+  )?.value;
+  const flexible = Object.getOwnPropertyDescriptor(
+    value,
+    "isFlexibleUpdateAllowed",
+  )?.value;
+
+  return typeof immediate === "boolean" && typeof flexible === "boolean";
+};
+
+const getAllowedAndroidUpdateType = ({
+  isImmediateUpdateAllowed,
+  isFlexibleUpdateAllowed,
+}: AndroidUpdateSupport): AndroidUpdateType | null => {
+  if (isImmediateUpdateAllowed) {
+    return AndroidUpdateType.IMMEDIATE;
+  }
+
+  if (isFlexibleUpdateAllowed) {
+    return AndroidUpdateType.FLEXIBLE;
+  }
+
+  return null;
+};
+
+const openStoreUpdate = () => {
+  Linking.openURL(ANDROID_STORE_URL);
+};
+
+const showStoreUpdateFallback = () => {
+  Alert.alert("새 버전", "최신 버전 이용을 위해 스토어로 이동합니다.", [
+    {
+      text: "확인",
+      onPress: openStoreUpdate,
+    },
+  ]);
+};
+
+const checkInAppUpdate = async (
+  inAppUpdates: InstanceType<typeof InAppUpdates>,
+) => {
+  if (Platform.OS !== "android") {
+    return;
+  }
+
+  let result: Awaited<ReturnType<typeof inAppUpdates.checkNeedsUpdate>>;
+
+  try {
+    result = await inAppUpdates.checkNeedsUpdate();
+  } catch (error) {
+    if (error instanceof Error) {
+      return;
+    }
+
+    throw error;
+  }
+
+  if (!result.shouldUpdate) {
+    return;
+  }
+
+  if (!isAndroidUpdateSupport(result.other)) {
+    showStoreUpdateFallback();
+    return;
+  }
+
+  const updateType = getAllowedAndroidUpdateType(result.other);
+
+  if (updateType === null) {
+    showStoreUpdateFallback();
+    return;
+  }
+
+  try {
+    await inAppUpdates.startUpdate({ updateType });
+  } catch (error) {
+    if (error instanceof Error) {
+      showStoreUpdateFallback();
+      return;
+    }
+
+    throw error;
+  }
+};
 
 export default function App() {
   const [fontsLoaded] = useFonts({
@@ -50,29 +158,7 @@ export default function App() {
   useEffect(() => {
     const initializeApp = async () => {
       try {
-        inAppUpdatesRef.current.checkNeedsUpdate().then((result) => {
-          if (result.shouldUpdate) {
-            inAppUpdatesRef.current
-              .startUpdate({
-                updateType: AndroidUpdateType.IMMEDIATE,
-              })
-              .catch(() => {
-                Alert.alert(
-                  "업데이트 필요",
-                  "최신 버전 이용을 위해 스토어로 이동합니다.",
-                  [
-                    {
-                      text: "확인",
-                      onPress: () =>
-                        Linking.openURL(
-                          "market://details?id=com.sixstandard.PICK",
-                        ),
-                    },
-                  ],
-                );
-              });
-          }
-        });
+        await checkInAppUpdate(inAppUpdatesRef.current);
 
         const accessToken = await getItem("access_token");
         setToken(accessToken ?? null);
@@ -97,12 +183,17 @@ export default function App() {
     initializeApp();
     loadTheme();
     loadOptions();
-    if (!status?.granted) requestPermission();
 
     return () => {
       isMountedRef.current = false;
     };
-  }, []);
+  }, [fade, loadOptions, loadTheme]);
+
+  useEffect(() => {
+    if (!status?.granted) {
+      requestPermission();
+    }
+  }, [requestPermission, status?.granted]);
 
   useEffect(() => {
     const backHandler = BackHandler.addEventListener(

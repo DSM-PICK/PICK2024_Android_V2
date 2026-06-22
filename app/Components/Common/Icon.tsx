@@ -2,6 +2,8 @@ import { IColorProp, useTheme } from "@/hooks";
 import { SvgProps } from "react-native-svg";
 import * as Icons from "@/assets";
 
+const iconMap = { ...Icons };
+
 const rotateTable = {
   up: "0deg",
   down: "180deg",
@@ -25,12 +27,12 @@ export const Icon = ({
   size = 36,
   ...props
 }: IProp) => {
-  const _Icon = Icons[name];
+  const IconSVG = iconMap[name];
   const { color } = useTheme();
   const fillColor = color(colorType || "gray", colorLevel || 400, true);
 
   return (
-    <_Icon
+    <IconSVG
       {...props}
       hitSlop={{ top: 5, bottom: 5, right: 5, left: 5 }}
       width={size}
