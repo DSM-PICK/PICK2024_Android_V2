@@ -113,6 +113,7 @@ export const Login = ({ navigation }) => {
           id="account_id"
           placeholder="학교 이메일을 입력해주세요"
           onChange={handleChange}
+          autoComplete="username"
           after={
             <Text
               fontType="caption"
@@ -131,6 +132,7 @@ export const Login = ({ navigation }) => {
           placeholder="비밀번호를 입력하세요"
           onChange={handleChange}
           password
+          autoComplete="password"
         />
         <HelperLink
           text={"비밀번호를 잊어버리셨나요?"}
