@@ -5,6 +5,7 @@
   "scripts": {
     "start": "expo start",
     "android": "expo run:android",
+    "build": "eas build -p android",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
