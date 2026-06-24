@@ -42,8 +42,8 @@ export const Icon = ({
         props.style,
         {
           transform: [{ rotate: rotateTable[rotate] }],
-          fill: fillColor,
-        },
+          color: fillColor,
+        } as any,
       ]}
     />
   );
