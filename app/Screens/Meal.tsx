@@ -51,7 +51,7 @@ export const Meal = () => {
           </Text>
           <View style={{ gap: 20, width: "100%", paddingHorizontal: 24 }}>
             {mealData &&
-              Object.values(mealData?.meal_list).map((item, index) => (
+              Object.values(mealData?.meal_list ?? {}).map((item, index) => (
                 <View
                   key={index}
                   style={{
@@ -90,7 +90,7 @@ export const Meal = () => {
                         fontType="body"
                         fontLevel={1}
                       >
-                        {!!item.menu.length ? item.cal : "0 Kcal"}
+                        {item.menu?.length ? item.cal : "0 Kcal"}
                       </Text>
                     </View>
                   </View>
@@ -101,7 +101,7 @@ export const Meal = () => {
                     fontLevel={1}
                     style={{ width: 116 }}
                   >
-                    {!!item.menu.length
+                    {item.menu?.length
                       ? item.menu.join("\n")
                       : "급식이 없습니다"}
                   </Text>
