@@ -1,7 +1,6 @@
 import { useBottomSheet, useTheme } from "@/hooks";
 import { View } from "../AnimatedComponents";
 import { IProp as ICalProp, Calander } from "./";
-import { useEffect } from "react";
 import { Icon } from "../Icon";
 
 interface IProp extends ICalProp {
@@ -10,14 +9,8 @@ interface IProp extends ICalProp {
 
 export const WeekCalander = (props: IProp) => {
   const { color } = useTheme();
-  const { open, component, set } = useBottomSheet();
+  const { open } = useBottomSheet();
   const direction = props.direction;
-
-  useEffect(() => {
-    if (!!component) {
-      set({ component: <Calander {...props} /> });
-    }
-  }, [props, component, set]);
 
   return (
     <View style={{ width: "100%", position: "relative" }}>
